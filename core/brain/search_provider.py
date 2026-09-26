@@ -19,4 +19,5 @@ class MockSearchProvider:
         self._sources = sources or []
 
     def search(self, query: str, limit: int = 20) -> SearchResults:
+        """依查詢回傳夾具價格，上限切片。"""
         return SearchResults(prices=self._prices[:limit], sources=self._sources)

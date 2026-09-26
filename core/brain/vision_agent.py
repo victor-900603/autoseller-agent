@@ -17,6 +17,7 @@ class VisionError(Exception):
 
 
 def grade_to_condition(grade: str) -> Condition:
+    """等級轉刊登成色，未知等級拋錯。"""
     try:
         return _GRADE_TO_CONDITION[grade]
     except KeyError as exc:
@@ -24,6 +25,7 @@ def grade_to_condition(grade: str) -> Condition:
 
 
 def analyze_images(gateway: LlmGateway, image_paths: list[str]) -> VisionResult:
+    """經網關解析圖片並以契約驗證，失敗皆轉視覺錯誤。"""
     if not image_paths:
         raise VisionError("缺少商品圖片")
     try:

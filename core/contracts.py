@@ -27,6 +27,7 @@ class ListingContract(BaseModel):
 
     @model_validator(mode="after")
     def floor_not_above_suggested(self):
+        """底價不得高於建議價，否則契約無效。"""
         if self.floor_price > self.suggested_price:
             raise ValueError("floor_price 不得高於 suggested_price")
         return self
@@ -41,6 +42,7 @@ class ChatDecision(BaseModel):
 
     @model_validator(mode="after")
     def sendable_has_reply(self):
+        """標記發送時必須附回覆文字。"""
         if self.should_send and not self.reply_text.strip():
             raise ValueError("should_send 為真時必須附回覆文字")
         return self

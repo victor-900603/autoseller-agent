@@ -23,6 +23,7 @@ REQUIRED_ENV = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_ADMIN_IDS", "TAVILY_API_KEY"]
 
 
 def load_dotenv(path: Path) -> dict:
+    """解析 .env 檔為字典，檔案不存在回傳空字典。"""
     values = {}
     if not path.exists():
         return values
@@ -36,6 +37,7 @@ def load_dotenv(path: Path) -> dict:
 
 
 def check() -> list:
+    """檢查設定檔與環境變數，回傳問題清單（空清單表示通過）。"""
     problems = []
 
     if not SETTINGS_PATH.exists():
@@ -64,6 +66,7 @@ def check() -> list:
 
 
 def main(argv=None) -> int:
+    """進入點，僅支援 --check，不啟動服務。"""
     parser = argparse.ArgumentParser(description="autoseller-agent")
     parser.add_argument("--check", action="store_true", help="僅檢查設定與環境，不啟動服務")
     args = parser.parse_args(argv)

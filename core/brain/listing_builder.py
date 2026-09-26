@@ -10,6 +10,7 @@ class LowConfidenceError(Exception):
 
 
 def build_title(detected_brand: str, detected_model: str, extra: str = "") -> str:
+    """組標題，超限先去配件、再硬截斷，保證符合契約長度。"""
     full = f"{detected_brand} {detected_model} {extra}".strip()
     if len(full) <= _TITLE_LIMIT:
         return full
@@ -20,6 +21,7 @@ def build_title(detected_brand: str, detected_model: str, extra: str = "") -> st
 
 
 def build_description(vision: VisionResult, trade_terms: str) -> str:
+    """組四段式描述，空清單填預設文案。"""
     defects = "、".join(vision.defects_noted) if vision.defects_noted else "無明顯瑕疵"
     inclusions = "、".join(vision.inclusions) if vision.inclusions else "僅商品本體"
     condition = grade_to_condition(vision.condition_grade)
@@ -41,6 +43,7 @@ def build_listing(
     trade_terms: str,
     title_extra: str = "",
 ) -> ListingContract:
+    """組裝可刊登契約，低信心行情拒絕組裝轉人工。"""
     if quote.low_confidence:
         raise LowConfidenceError("行情樣本不足，轉人工審核")
     condition = grade_to_condition(vision.condition_grade)

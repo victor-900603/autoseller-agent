@@ -13,6 +13,7 @@ _CONDITION_DISCOUNTS = {
 
 
 def summarize(prices: list[int], sources: list[str] | None = None) -> MarketQuote:
+    """剔除最高最低各一成後取四分位，零樣本拋錯、不足五筆標低信心。"""
     if not prices:
         raise ValueError("無價格樣本")
     ordered = sorted(prices)
@@ -34,9 +35,11 @@ def summarize(prices: list[int], sources: list[str] | None = None) -> MarketQuot
 
 
 def apply_condition_discount(p50: int, condition: Condition) -> int:
+    """按成色折扣計算建議價，捨入至十位數。"""
     discounted = p50 * (1 - _CONDITION_DISCOUNTS[condition])
     return int(round(discounted / _PRICE_STEP) * _PRICE_STEP)
 
 
 def apply_floor(suggested_price: int, floor_ratio: float) -> int:
+    """建議價乘係數得底價，係數由呼叫端傳入。"""
     return int(round(suggested_price * floor_ratio))
