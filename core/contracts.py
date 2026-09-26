@@ -44,3 +44,12 @@ class ChatDecision(BaseModel):
         if self.should_send and not self.reply_text.strip():
             raise ValueError("should_send 為真時必須附回覆文字")
         return self
+
+
+class MarketQuote(BaseModel):
+    p25: PositiveInt
+    p50: PositiveInt
+    p75: PositiveInt
+    sample_count: int = Field(ge=0)
+    sources: list[str] = Field(default_factory=list)
+    low_confidence: bool = False
