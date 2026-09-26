@@ -1,0 +1,8 @@
+playwright
+pydantic>=2
+pydantic-settings
+aiosqlite
+python-telegram-bot>=21
+pyyaml
+pytest
+ruff

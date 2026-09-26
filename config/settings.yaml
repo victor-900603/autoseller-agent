@@ -1,0 +1,13 @@
+poll_interval:
+  chat_seconds: 180
+  order_seconds: 600
+pricing:
+  floor_ratio: 0.85
+browser:
+  retry_limit: 2
+  action_jitter_ms: [150, 350]
+  viewport_pool: [[1280, 800], [1920, 1080]]
+listing:
+  image_limit: 10
+screenshots:
+  retention_days: 30

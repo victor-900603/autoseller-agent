@@ -1,0 +1,17 @@
+.env
+
+# 本地執行狀態
+storage/user_data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+screenshots/
+
+# 工具暫存
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+*.pyc
