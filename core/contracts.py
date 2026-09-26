@@ -53,3 +53,14 @@ class MarketQuote(BaseModel):
     sample_count: int = Field(ge=0)
     sources: list[str] = Field(default_factory=list)
     low_confidence: bool = False
+
+
+ConditionGrade = Literal["10_out_of_10", "9_out_of_10", "8_out_of_10"]
+
+
+class VisionResult(BaseModel):
+    detected_brand: str = Field(min_length=1)
+    detected_model: str = Field(min_length=1)
+    condition_grade: ConditionGrade
+    defects_noted: list[str] = Field(default_factory=list)
+    inclusions: list[str] = Field(default_factory=list)
