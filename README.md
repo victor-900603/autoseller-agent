@@ -9,6 +9,7 @@ pip install -r requirements.txt
 ruff check .
 pytest -q
 python main.py --check
+python main.py
 ```
 
 首次使用先複製 `.env.example` 為 `.env` 並填入金鑰（`.env` 不進版控）。

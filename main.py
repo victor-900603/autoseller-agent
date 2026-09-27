@@ -1,14 +1,25 @@
 """系統進入點與排程引擎。"""
 
 import argparse
+import asyncio
+import logging
 import sys
 from pathlib import Path
 
 import yaml
 
+from core.contracts import Job
+from core.orchestrator.job_queue import JobQueue
+from core.orchestrator.scheduler import Scheduler
+from storage.db import apply_migrations, open_db
+
 ROOT = Path(__file__).resolve().parent
 SETTINGS_PATH = ROOT / "config" / "settings.yaml"
 ENV_PATH = ROOT / ".env"
+MIGRATIONS_DIR = ROOT / "storage" / "migrations"
+DEFAULT_DB_PATH = ROOT / "storage" / "app.db"
+
+logger = logging.getLogger("autoseller")
 
 REQUIRED_SETTINGS = [
     ("poll_interval", "chat_seconds"),
@@ -66,7 +77,7 @@ def check() -> list:
 
 
 def main(argv=None) -> int:
-    """進入點，僅支援 --check，不啟動服務。"""
+    """進入點，--check 檢查設定，無參數常駐運行。"""
     parser = argparse.ArgumentParser(description="autoseller-agent")
     parser.add_argument("--check", action="store_true", help="僅檢查設定與環境，不啟動服務")
     args = parser.parse_args(argv)
@@ -81,8 +92,70 @@ def main(argv=None) -> int:
         print("設定檢查通過")
         return 0
 
-    print("未指定 --check，不啟動服務")
-    return 2
+    return run()
+
+
+def load_intervals() -> tuple:
+    """讀取輪詢間隔（呼叫前須已通過檢查）。"""
+    settings = yaml.safe_load(SETTINGS_PATH.read_text(encoding="utf-8"))
+    return (
+        settings["poll_interval"]["chat_seconds"],
+        settings["poll_interval"]["order_seconds"],
+    )
+
+
+async def serve(
+    db_path: Path = DEFAULT_DB_PATH,
+    chat_interval: float = 180,
+    order_interval: float = 600,
+) -> None:
+    """組裝儲存、佇列與排程器並運行至取消。"""
+    conn = await open_db(db_path)
+    try:
+        await apply_migrations(conn, MIGRATIONS_DIR)
+        queue: JobQueue = JobQueue()
+
+        async def on_job(job: Job) -> None:
+            logger.info("收到任務：%s", job.job_id)
+
+        async def chat_poll() -> None:
+            pass
+
+        async def order_poll() -> None:
+            pass
+
+        def on_error(task_type: str, exc: Exception) -> None:
+            logger.error("%s 失敗：%s", task_type, exc)
+
+        scheduler = Scheduler(
+            queue, on_job, chat_poll, order_poll, chat_interval, order_interval, on_error
+        )
+        scheduler.start()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            await scheduler.stop()
+    finally:
+        await conn.close()
+
+
+def run() -> int:
+    """檢查通過後常駐運行，終止訊號結束。"""
+    problems = check()
+    if problems:
+        print("設定檢查未通過：")
+        for item in problems:
+            print(f"  - {item}")
+        return 1
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
+    )
+    chat_interval, order_interval = load_intervals()
+    try:
+        asyncio.run(serve(DEFAULT_DB_PATH, chat_interval, order_interval))
+    except KeyboardInterrupt:
+        pass
+    return 0
 
 
 if __name__ == "__main__":
