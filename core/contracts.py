@@ -1,5 +1,7 @@
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Literal
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, PositiveInt, model_validator
 
@@ -66,3 +68,17 @@ class VisionResult(BaseModel):
     condition_grade: ConditionGrade
     defects_noted: list[str] = Field(default_factory=list)
     inclusions: list[str] = Field(default_factory=list)
+
+
+class JobType(StrEnum):
+    LISTING = "LISTING"
+    CHAT_REPLY = "CHAT_REPLY"
+    ORDER_CHECK = "ORDER_CHECK"
+
+
+class Job(BaseModel):
+    job_id: str = Field(default_factory=lambda: uuid4().hex, min_length=1)
+    job_type: JobType
+    payload: dict = Field(default_factory=dict)
+    idempotency_key: str = Field(min_length=1)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
