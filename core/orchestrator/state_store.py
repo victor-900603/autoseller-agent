@@ -53,6 +53,16 @@ class StateStore:
         row = await cursor.fetchone()
         return dict(row) if row else None
 
+    async def list_products(self, status: str | None = None) -> list[dict]:
+        """依狀態列出商品，無狀態篩選回傳全部。"""
+        if status is None:
+            cursor = await self._conn.execute("SELECT * FROM products ORDER BY created_at DESC")
+        else:
+            cursor = await self._conn.execute(
+                "SELECT * FROM products WHERE status = ? ORDER BY created_at DESC", (status,)
+            )
+        return [dict(row) for row in await cursor.fetchall()]
+
     async def transition_product(self, product_id: str, to_state: str) -> None:
         """轉換商品狀態，不存在或非法轉換拋錯。"""
         product = await self.get_product(product_id)
