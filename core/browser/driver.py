@@ -20,7 +20,7 @@ class DriverError(Exception):
 class DriverConfig:
     """驅動啟動參數，路徑為空時由 Playwright 自行解析。"""
 
-    headless: bool = True
+    headless: bool = False
     profile_dir: Path = Path("storage/user_data")
     viewports: list = field(default_factory=lambda: list(_DEFAULT_VIEWPORTS))
     jitter_ms: tuple = (150, 350)

@@ -18,7 +18,12 @@ CAPTCHA_URL_MARKERS = (
 CAPTCHA_CONTENT_MARKERS = (
     "geetest",
     "cf-challenge",
+    "__cf_chl",
     "challenge-form",
+    "cloudflare",
+    "attention required",
+    "ray id",
+    "正在執行安全驗證",
     "驗證你是人類",
 )
 

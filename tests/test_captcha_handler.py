@@ -16,6 +16,11 @@ def test_normal_page_passes():
     assert detect_captcha("https://example.com/item/1", "<div>商品</div>") is False
 
 
+def test_cloudflare_challenge_detected():
+    html = "<title>Attention Required!</title><div>正在執行安全驗證 Ray ID: abc123</div>"
+    assert detect_captcha("https://tw.carousell.com/", html) is True
+
+
 class FakeDriver:
     def __init__(self, tmp_path):
         self.shot = Path(tmp_path) / "captcha.png"
