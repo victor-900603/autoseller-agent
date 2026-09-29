@@ -68,9 +68,12 @@ async def _open_store(tmp_path):
     return conn, StateStore(conn)
 
 
-def _app(store):
+def _app(store, login_handler=None):
     queue = JobQueue()
-    return TelegramApp("token", {ADMIN}, store, queue, FakeScheduler()), queue
+    scheduler = FakeScheduler()
+    app = TelegramApp("token", {ADMIN}, store, queue, scheduler)
+    app._login_handler = login_handler
+    return app, queue
 
 
 def test_non_admin_ignored(tmp_path):
@@ -215,3 +218,68 @@ def test_list_products_filter(tmp_path):
     drafts, all_products = asyncio.run(scenario())
     assert [p["id"] for p in drafts] == ["p1"]
     assert len(all_products) == 2
+
+
+def test_login_without_handler(tmp_path):
+    async def scenario():
+        conn, store = await _open_store(tmp_path)
+        try:
+            app, _ = _app(store)
+            update = FakeUpdate(ADMIN)
+            await app.login_cmd(update, FakeContext())
+            return update.message.replies
+        finally:
+            await conn.close()
+
+    assert asyncio.run(scenario()) == ["登入流程尚未啟用。"]
+
+
+def test_login_success(tmp_path):
+    async def scenario():
+        conn, store = await _open_store(tmp_path)
+        try:
+            async def handler():
+                return True
+
+            app, _ = _app(store, login_handler=handler)
+            update = FakeUpdate(ADMIN)
+            await app.login_cmd(update, FakeContext())
+            return update.message.replies
+        finally:
+            await conn.close()
+
+    assert asyncio.run(scenario()) == ["已傳送登入圖，請用手機掃描。", "登入完成。"]
+
+
+def test_login_timeout(tmp_path):
+    async def scenario():
+        conn, store = await _open_store(tmp_path)
+        try:
+            async def handler():
+                return False
+
+            app, _ = _app(store, login_handler=handler)
+            update = FakeUpdate(ADMIN)
+            await app.login_cmd(update, FakeContext())
+            return update.message.replies
+        finally:
+            await conn.close()
+
+    assert asyncio.run(scenario()) == ["已傳送登入圖，請用手機掃描。", "登入逾時，請重打 /login。"]
+
+
+def test_login_non_admin_ignored(tmp_path):
+    async def scenario():
+        conn, store = await _open_store(tmp_path)
+        try:
+            async def handler():
+                return True
+
+            app, _ = _app(store, login_handler=handler)
+            update = FakeUpdate(OUTSIDER)
+            await app.login_cmd(update, FakeContext())
+            return update.message.replies
+        finally:
+            await conn.close()
+
+    assert asyncio.run(scenario()) == []

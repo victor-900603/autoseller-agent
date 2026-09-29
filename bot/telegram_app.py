@@ -25,13 +25,15 @@ class TelegramApp:
         store: StateStore,
         queue: JobQueue,
         scheduler: Scheduler,
+        login_handler=None,
     ) -> None:
-        """注入token、管理員、儲存、佇列與排程器，不啟動輪詢。"""
+        """注入權杖、管理員、儲存、佇列、排程器與登入流程，不啟動輪詢。"""
         self._token = token
         self._admin_ids = admin_ids
         self._store = store
         self._queue = queue
         self._scheduler = scheduler
+        self._login_handler = login_handler
 
     def is_admin(self, user_id: int) -> bool:
         """是否為白名單管理員。"""
@@ -88,6 +90,19 @@ class TelegramApp:
         self._scheduler.resume()
         await update.message.reply_text("已恢復刊登消費。")
 
+    async def login_cmd(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """觸發掃碼登入，非管理員忽略。"""
+        if not self.is_admin(update.effective_user.id):
+            return
+        if self._login_handler is None:
+            await update.message.reply_text("登入流程尚未啟用。")
+            return
+        await update.message.reply_text("已傳送登入圖，請用手機掃描。")
+        if await self._login_handler():
+            await update.message.reply_text("登入完成。")
+        else:
+            await update.message.reply_text("登入逾時，請重打 /login。")
+
     def review_keyboard(self, product_id: str) -> InlineKeyboardMarkup:
         """審核按鈕，未核准不入列。"""
         return InlineKeyboardMarkup(
@@ -142,10 +157,11 @@ class TelegramApp:
         application.add_handler(CommandHandler("status", self.status_cmd))
         application.add_handler(CommandHandler("pause", self.pause_cmd))
         application.add_handler(CommandHandler("resume", self.resume_cmd))
+        application.add_handler(CommandHandler("login", self.login_cmd))
         application.add_handler(CallbackQueryHandler(self.review_callback))
         self._application = application
         return application
 
     async def run(self) -> None:
-        """啟動輪詢（需真實token與網路）。"""
+        """啟動輪詢（需真實權杖與網路）。"""
         await self.build_app().run_polling()

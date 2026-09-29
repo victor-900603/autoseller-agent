@@ -9,6 +9,7 @@ pip install -r requirements.txt
 ruff check .
 pytest -q
 python main.py --check
+python main.py --login
 python main.py
 ```
 

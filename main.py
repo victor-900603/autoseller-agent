@@ -7,7 +7,10 @@ import sys
 from pathlib import Path
 
 import yaml
+from telegram import Bot
 
+from core.browser.driver import BrowserDriver, DriverConfig
+from core.browser.login_flow import LoginError, qr_login
 from core.contracts import Job
 from core.orchestrator.job_queue import JobQueue
 from core.orchestrator.scheduler import Scheduler
@@ -77,9 +80,10 @@ def check() -> list:
 
 
 def main(argv=None) -> int:
-    """進入點，--check 檢查設定，無參數常駐運行。"""
+    """進入點，--check 檢查設定，--login 掃碼登入，無參數常駐運行。"""
     parser = argparse.ArgumentParser(description="autoseller-agent")
     parser.add_argument("--check", action="store_true", help="僅檢查設定與環境，不啟動服務")
+    parser.add_argument("--login", action="store_true", help="掃碼登入並保存登入態")
     args = parser.parse_args(argv)
 
     if args.check:
@@ -91,6 +95,9 @@ def main(argv=None) -> int:
             return 1
         print("設定檢查通過")
         return 0
+
+    if args.login:
+        return login()
 
     return run()
 
@@ -155,6 +162,43 @@ def run() -> int:
         asyncio.run(serve(DEFAULT_DB_PATH, chat_interval, order_interval))
     except KeyboardInterrupt:
         pass
+    return 0
+
+
+async def _login_flow() -> None:
+    """有頭開啟登入頁，傳圖後等待掃碼完成。"""
+    env = load_dotenv(ENV_PATH)
+    bot = Bot(token=env["TELEGRAM_BOT_TOKEN"])
+    admin_id = env["TELEGRAM_ADMIN_IDS"].split(",")[0]
+    driver = BrowserDriver(DriverConfig(headless=False))
+    await driver.start()
+    try:
+        shot_dir = ROOT / "screenshots"
+        shot_dir.mkdir(parents=True, exist_ok=True)
+
+        async def notifier(shot) -> None:
+            with open(shot, "rb") as photo:
+                await bot.send_photo(
+                    chat_id=admin_id, photo=photo, caption="請用手機旋轉拍賣 App 掃描登入。"
+                )
+
+        await qr_login(driver, shot_dir / "login_qr.png", notifier)
+    finally:
+        await driver.stop()
+
+
+def login() -> int:
+    """掃碼登入並保存登入態，缺權杖或管理員直接拒絕。"""
+    env = load_dotenv(ENV_PATH)
+    if not env.get("TELEGRAM_BOT_TOKEN") or not env.get("TELEGRAM_ADMIN_IDS"):
+        print("缺少權杖或管理員設定，無法傳送登入圖。")
+        return 1
+    try:
+        asyncio.run(_login_flow())
+    except LoginError as exc:
+        print(f"登入失敗：{exc}")
+        return 1
+    print("登入完成。")
     return 0
 
 
